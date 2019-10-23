@@ -1,0 +1,103 @@
+function [segmentation,centers]=kmeans_segm(image,K,L,seed)
+
+%K is the number of cluster centers
+%L is the number of iterations
+%seed for initializing randomization
+image=double(image);
+%Important to reshape the image
+sz=size(image);
+disp(sz);
+H=sz(1,1);
+W=sz(1,2);
+
+Ires=reshape(image,HH,3);
+
+%Random Initialisation
+number=255/K;
+clusters=[];
+
+for i=1:K
+  a=[];
+%   for j=1:3
+  tmp=rand*(i*number);
+%     a=[a tmp];
+%   end
+  a=[tmp tmp tmp];
+  clusters=[clusters;a];  
+end
+disp(clusters);
+%Computing all distances 
+row=W*H;
+%Will make a distance matrix of size (W*H,K)
+distance=zeros(row,K);
+  
+  for i=1:row
+    for j=1:K
+      distance(i,j)=pdist2(clusters(j,:),Ires(i,:));
+    end
+  end
+ disp(2);
+%Iterate L times
+
+for iter=1:L
+  
+  %Assigning the each pixel to a particular cluster
+  minimize=min(distance,[],2);  %2 makes sure that it is minimized row wise
+  [alpha beta]=find(distance==minimize);
+  %Matrix to keep track of cluster
+  index=beta;
+  
+  %new clusters
+  visited=zeros(K,1);
+  count=zeros(K,3);
+  ch_clusters=zeros(K,3);
+  %iterating on the num of index matrix
+  for M=1:row
+    ind=index(M,1);
+    if visited(ind)==1
+      count(ind,:)=count(ind,:)+[1 1 1];
+      ch_clusters(ind,:)=ch_clusters(ind,:)+Ires(M,:);   
+      clusters(ind,:)=ch_clusters(ind,:)./count(ind,:);
+    elseif visited(ind)==0
+      visited(ind)=1;
+      count(ind,:)=count(ind,:)+[1 1 1];
+      clusters(ind,:)=[0 0 0];
+      clusters(ind,:)=clusters(ind,:)+Ires(M,:);
+      ch_clusters(ind,:)=ch_clusters(ind,:)+Ires(M,:); 
+    end
+  end
+  %Averaging  
+  disp(3);
+  disp(clusters);
+  %New distances
+  
+  distance=zeros(row,K); 
+  for i=1:row
+    for j=1:K
+      distance(i,j)=pdist2(clusters(j,:),Ires(i,:));
+    end
+  end
+  
+end
+
+%updated_image=zeros(row,3);
+
+%for i=1:row
+ % updated_image(i,:)=clusters(index(i,1),1);
+%end
+
+%final_image=reshape(updated_image,H,W,3);
+ segmentation=reshape(index,H,W);
+ centers=clusters;
+
+for f=1:row
+    Ires(f,:)=clusters(index(f,1),:);
+end
+Ires=ceil(Ires);
+disp(Ires);
+Ivec=reshape(Ires,H,W,3);
+Ivec=uint8(Ivec);
+disp(Ivec);
+output=overlay_bounds(Ivec,segmentation);
+imshow(output);
+end
